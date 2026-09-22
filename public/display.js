@@ -15,8 +15,8 @@
   const videos = {
     1: 'assets/#1_walk.mp4',
     2: 'assets/#4_water',
-    3: 'assets/#4_main1.mp4',
-    4: 'assets/#4_main2.mp4'
+    3: 'assets/#4_main1_low.mp4',
+    4: 'assets/#4_main2_low.mp4'
   };
 
   const socket = new FishSocket({
