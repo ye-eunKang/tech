@@ -1,82 +1,612 @@
+/* =========================================================
+   공통 설정
+========================================================= */
+
 :root {
   --bg: #071a25;
-  --panel: rgba(12, 42, 56, .78);
-  --panel2: rgba(17, 55, 70, .82);
+  --panel: rgba(12, 42, 56, 0.88);
+  --panel2: rgba(17, 55, 70, 0.9);
+
   --text: #eef7f8;
   --muted: #9fc1c9;
-  --line: rgba(214, 242, 245, .16);
+
+  --line: rgba(214, 242, 245, 0.16);
+
   --accent: #9ddfd4;
   --accent2: #efc7a4;
   --danger: #f3aaa4;
 }
-*{box-sizing:border-box}
+
+* {
+  box-sizing: border-box;
+}
+
 html,
 body {
   margin: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: black;
+  padding: 0;
+  min-height: 100%;
 }
 
 body {
+  min-height: 100vh;
+  min-height: 100dvh;
+
+  font-family:
+    ui-sans-serif,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  background:
+    radial-gradient(
+      circle at 50% -10%,
+      #194a5a 0%,
+      #0a2734 30%,
+      var(--bg) 75%
+    );
+
+  color: var(--text);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+
+/* =========================================================
+   휴대폰 페이지
+   phone.html
+========================================================= */
+
+.shell {
+  width: min(720px, 100%);
+  margin: 0 auto;
+
+  padding:
+    max(24px, env(safe-area-inset-top))
+    18px
+    max(46px, env(safe-area-inset-bottom));
+}
+
+
+/* ---------- 상단 ---------- */
+
+.header {
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+  margin-bottom: 22px;
 }
 
-/* =========================
-   전시 디스플레이
-========================= */
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 
-.display-page {
-  margin: 0;
+  color: var(--muted);
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+.status-pill {
+  flex-shrink: 0;
+
+  padding: 7px 10px;
+
+  font-size: 12px;
+  color: var(--muted);
+
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+
+/* ---------- 메인 카드 ---------- */
+
+.card {
   width: 100%;
-  height: 100vh;
-  overflow: hidden;
-  background: black;
 
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  padding: 22px;
+
+  background: var(--panel);
+
+  border: 1px solid var(--line);
+  border-radius: 24px;
+
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
-.display-page #stage {
-  width: 1440px;
-  height: 1080px;
-  overflow: hidden;
-  background: black;
+
+/* =========================================================
+   중요!
+   폰 인터랙션 단계 전환
+========================================================= */
+
+/*
+  기본적으로 모든 단계 숨김
+*/
+
+.stage {
+  display: none;
 }
 
-.display-page #mainVideo {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+
+/*
+  phone.js에서 active가 붙은 단계만 표시
+*/
+
+.stage.active {
   display: block;
 }
 
 
-/* =========================
-   휴대폰
-========================= */
+/* ---------- 설명 ---------- */
 
-.phone-page {
+.instruction {
+  margin-bottom: 8px;
+
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.sub {
+  margin-bottom: 0;
+
+  color: var(--muted);
+
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+
+/* =========================================================
+   버튼
+========================================================= */
+
+button {
+  min-height: 48px;
+
+  padding: 14px 22px;
+
+  border: 0;
+  border-radius: 999px;
+
+  background: var(--accent);
+  color: #06242b;
+
+  font-weight: 800;
+
+  cursor: pointer;
+
+  -webkit-tap-highlight-color: transparent;
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--text);
+
+  border: 1px solid var(--line);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 10px;
+
+  margin-top: 18px;
+}
+
+
+/* =========================================================
+   기울기 / 수평 센서 숫자
+========================================================= */
+
+.angle-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+
+  gap: 10px;
+
+  margin: 16px 0;
+}
+
+.angle {
+  min-width: 0;
+
+  padding: 14px;
+
+  background: var(--panel2);
+
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.angle b {
+  display: block;
+
+  margin-top: 3px;
+
+  font-size: 28px;
+}
+
+
+/* =========================================================
+   진행 바
+========================================================= */
+
+.meter {
+  width: 100%;
+  height: 12px;
+
+  margin: 18px 0;
+
+  overflow: hidden;
+
+  border-radius: 999px;
+
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.meter > span {
+  display: block;
+
+  width: 0;
+  height: 100%;
+
+  background: var(--accent);
+
+  transition: width 0.12s linear;
+}
+
+
+/* =========================================================
+   미니게임
+========================================================= */
+
+.game-score {
+  margin: 12px 0;
+
+  font-weight: 800;
+}
+
+.game-area {
+  position: relative;
+
+  width: 100%;
+  height: 320px;
+
+  overflow: hidden;
+
+  border: 1px solid var(--line);
+  border-radius: 22px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(87, 145, 158, 0.25),
+      rgba(5, 31, 45, 0.5)
+    );
+
+  touch-action: manipulation;
+}
+
+
+/* 물고기 버튼 */
+
+.fish-target {
+  position: absolute;
+
+  width: 74px;
+  height: 46px;
+
+  min-height: 0;
+  padding: 0;
+
+  border: 0;
+  border-radius: 60% 45% 45% 60%;
+
+  background: var(--accent2);
+
+  transform: translate(-50%, -50%);
+
+  transition:
+    left 0.18s ease,
+    top 0.18s ease;
+
+  box-shadow:
+    0 0 0 6px rgba(255, 255, 255, 0.05);
+}
+
+
+/* 꼬리 */
+
+.fish-target::after {
+  content: "";
+
+  position: absolute;
+
+  right: -24px;
+  top: 9px;
+
+  width: 0;
+  height: 0;
+
+  border-top: 14px solid transparent;
+  border-bottom: 14px solid transparent;
+  border-left: 25px solid var(--accent2);
+}
+
+
+/* 눈 */
+
+.fish-target::before {
+  content: "";
+
+  position: absolute;
+
+  left: 16px;
+  top: 12px;
+
+  width: 6px;
+  height: 6px;
+
+  border-radius: 50%;
+
+  background: #18313a;
+}
+
+
+/* =========================================================
+   완료 화면
+========================================================= */
+
+.success {
+  margin-bottom: 10px;
+
+  font-size: 38px;
+}
+
+
+/* =========================================================
+   DEBUG 모드
+========================================================= */
+
+.debug {
+  display: none;
+
+  margin-top: 22px;
+  padding-top: 18px;
+
+  border-top: 1px dashed var(--line);
+}
+
+.debug.show {
+  display: block;
+}
+
+.debug label {
+  display: block;
+
+  margin: 10px 0;
+
+  color: var(--muted);
+}
+
+.debug input {
+  width: 100%;
+}
+
+
+/* =========================================================
+   전시 디스플레이
+   display.html
+
+   목표 해상도: 1440 × 1080
+   비율: 4:3
+========================================================= */
+
+.display-shell {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+
   margin: 0;
-  padding: 20px;
-  min-height: 100vh;
-  box-sizing: border-box;
+  padding: 0;
+
+  overflow: hidden;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   background: #000;
-  color: #fff;
-  font-family: sans-serif;
 }
 
-.phone-page button {
+
+/*
+  1440 × 1080을 최대 크기로 사용.
+  브라우저가 작아도 4:3 비율 유지.
+*/
+
+.video-frame {
+  position: relative;
+
+  width: min(
+    1440px,
+    100vw,
+    calc(100vh * 4 / 3)
+  );
+
+  width: min(
+    1440px,
+    100vw,
+    calc(100dvh * 4 / 3)
+  );
+
+  aspect-ratio: 4 / 3;
+
+  margin: 0;
+
+  overflow: hidden;
+
+  border: 0;
+  border-radius: 0;
+
+  background: #000;
+}
+
+
+/* =========================================================
+   전시 영상
+========================================================= */
+
+.video-frame video {
+  position: absolute;
+
+  inset: 0;
+
   width: 100%;
-  min-height: 52px;
-  font-size: 16px;
+  height: 100%;
+
+  margin: 0;
+
+  display: block;
+
+  object-fit: cover;
+
+  background: #000;
 }
 
-.phone-page video {
-  max-width: 100%;
+
+/* =========================================================
+   전시 화면의 모든 글씨 / UI 숨김
+========================================================= */
+
+/*
+  HTML에서는 남겨둔다.
+  display.js가 해당 요소들을 계속 찾기 때문에
+  HTML에서 삭제하지 않고 CSS로 숨기는 것이 안전하다.
+*/
+
+.video-overlay,
+.display-top,
+.display-bottom,
+.display-label,
+.connection,
+.display-controls,
+.waiting,
+.toast {
+  display: none !important;
+}
+
+
+/* =========================================================
+   혹시 waiting 클래스가 JS에서 show로 바뀌어도
+   절대로 표시하지 않음
+========================================================= */
+
+.waiting.show {
+  display: none !important;
+}
+
+.toast.show {
+  display: none !important;
+}
+
+
+/* =========================================================
+   모바일 최적화
+========================================================= */
+
+@media (max-width: 560px) {
+
+  .shell {
+    width: 100%;
+
+    padding:
+      max(18px, env(safe-area-inset-top))
+      14px
+      max(34px, env(safe-area-inset-bottom));
+  }
+
+  .card {
+    padding: 18px;
+
+    border-radius: 20px;
+  }
+
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+
+    margin-bottom: 18px;
+  }
+
+  .instruction {
+    font-size: 18px;
+  }
+
+  .sub {
+    font-size: 14px;
+  }
+
+  .angle b {
+    font-size: 24px;
+  }
+
+  .game-area {
+    height: 290px;
+  }
+
+  .actions {
+    width: 100%;
+  }
+
+  .actions button {
+    width: 100%;
+  }
+
+}
+
+
+/* =========================================================
+   아주 작은 스마트폰
+========================================================= */
+
+@media (max-width: 360px) {
+
+  .shell {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .card {
+    padding: 15px;
+  }
+
+  .angle-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .game-area {
+    height: 260px;
+  }
+
 }
