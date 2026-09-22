@@ -25,18 +25,58 @@ body {
   align-items: center;
 }
 
-#display,
-#stage,
-.display-container {
-  position: relative;
+/* =========================
+   전시 디스플레이
+========================= */
+
+.display-page {
+  margin: 0;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background: black;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.display-page #stage {
   width: 1440px;
   height: 1080px;
   overflow: hidden;
   background: black;
 }
 
-video {
+.display-page #mainVideo {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
+}
+
+
+/* =========================
+   휴대폰
+========================= */
+
+.phone-page {
+  margin: 0;
+  padding: 20px;
+  min-height: 100vh;
+  box-sizing: border-box;
+
+  background: #000;
+  color: #fff;
+  font-family: sans-serif;
+}
+
+.phone-page button {
+  width: 100%;
+  min-height: 52px;
+  font-size: 16px;
+}
+
+.phone-page video {
+  max-width: 100%;
 }
