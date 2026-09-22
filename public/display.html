@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>물고기는 어디에 — 전시 화면</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="display-shell">
+    <section class="video-frame">
+      <video id="video" playsinline muted preload="auto"></video>
+      <div id="waiting" class="waiting"><div class="card"><div id="waitTitle" class="instruction">기다리는 중</div><div id="waitSub" class="sub">휴대폰에서 인터랙션을 진행해 주세요.</div></div></div>
+      <div id="toast" class="toast"></div>
+      <div class="video-overlay">
+        <div class="display-top">
+          <span id="sceneLabel" class="display-label">기본 영상 ①</span>
+          <span id="connection" class="connection">서버 연결 중…</span>
+        </div>
+        <div class="display-bottom">
+          <h2 id="title">바다는 기다리고 있습니다.</h2>
+          <p id="caption">NFC를 태그하면 다음 장면이 시작됩니다.</p>
+        </div>
+      </div>
+      <div class="display-controls"><button id="audioBtn" class="secondary" type="button">소리 켜기</button></div>
+    </section>
+  </main>
+  <script src="ws-client.js"></script>
+  <script src="display.js"></script>
+</body>
+</html>

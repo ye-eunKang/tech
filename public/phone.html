@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#071a25" />
+  <title>물고기는 어디에 — 인터랙션</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <div class="header">
+      <div><div class="eyebrow">물고기는 어디에</div><h1 style="margin:4px 0 0;font-size:24px">휴대폰 인터랙션</h1></div>
+      <div id="conn" class="status-pill">연결 중…</div>
+    </div>
+
+    <section class="card">
+      <div id="stage-ready" class="stage active">
+        <p class="instruction">휴대폰을 손에 들고 시작해 주세요.</p>
+        <p class="sub">전시 화면은 이미 다음 장면으로 이동했습니다. 시작 버튼을 누르면 기울기 센서를 사용합니다.</p>
+        <div class="actions"><button id="startBtn">시작하기</button></div>
+      </div>
+
+      <div id="stage-tilt" class="stage">
+        <p class="instruction">휴대폰을 오른쪽으로 천천히 기울여 보세요.</p>
+        <p class="sub">약 12°부터 영상이 재생되고, 30° 이상을 1.5초 유지하면 다음 장면으로 넘어갑니다.</p>
+        <div class="angle-grid">
+          <div class="angle"><span class="eyebrow">좌우 기울기</span><b id="gammaText">0.0°</b></div>
+          <div class="angle"><span class="eyebrow">유지 시간</span><b id="tiltHoldText">0.0s</b></div>
+        </div>
+        <div class="meter"><span id="tiltMeter"></span></div>
+      </div>
+
+      <div id="stage-wait-game" class="stage">
+        <p class="instruction">장면이 이어지고 있어요.</p><p class="sub">영상이 끝나면 휴대폰에 작은 게임이 나타납니다.</p>
+      </div>
+
+      <div id="stage-game" class="stage">
+        <p class="instruction">헤엄치는 물고기를 5번 터치해 주세요.</p>
+        <div class="game-score">잡은 횟수 <span id="gameScore">0</span> / 5</div>
+        <div id="gameArea" class="game-area"><button id="fishTarget" class="fish-target" aria-label="물고기 잡기"></button></div>
+      </div>
+
+      <div id="stage-wait-level" class="stage">
+        <p class="instruction">마지막 장면을 보고 있어요.</p><p class="sub">영상이 끝나면 휴대폰을 수평으로 맞추는 마지막 인터랙션이 시작됩니다.</p>
+      </div>
+
+      <div id="stage-level" class="stage">
+        <p class="instruction">휴대폰을 평평하게 유지해 주세요.</p>
+        <p class="sub">앞뒤·좌우가 각각 ±5° 안에 들어온 상태를 2초 동안 유지하면 물고기가 바다에 나타납니다.</p>
+        <div class="angle-grid">
+          <div class="angle"><span class="eyebrow">앞뒤 β</span><b id="betaText">0.0°</b></div>
+          <div class="angle"><span class="eyebrow">좌우 γ</span><b id="levelGammaText">0.0°</b></div>
+        </div>
+        <div class="meter"><span id="levelMeter"></span></div>
+        <p class="sub" id="levelHoldText">0.0 / 2.0초</p>
+      </div>
+
+      <div id="stage-complete" class="stage">
+        <div class="success">🐟</div>
+        <p class="instruction">물고기가 바다로 이동했습니다.</p>
+        <p class="sub"><b id="completeFishId"></b> 신호가 TouchDesigner로 전송되었습니다.</p>
+      </div>
+
+      <div id="stage-error" class="stage">
+        <p class="instruction">센서 권한을 사용할 수 없습니다.</p>
+        <p class="sub" id="errorText"></p>
+        <div class="actions"><button id="retryBtn">다시 시도</button></div>
+      </div>
+
+      <div id="debugPanel" class="debug">
+        <div class="eyebrow">Desktop debug controls</div>
+        <label>β <span id="debugBetaLabel">0</span>°<input id="debugBeta" type="range" min="-60" max="60" value="0" /></label>
+        <label>γ <span id="debugGammaLabel">0</span>°<input id="debugGamma" type="range" min="-60" max="60" value="0" /></label>
+        <div class="actions">
+          <button id="debugVideo3" class="secondary">영상3 종료</button>
+          <button id="debugVideo4" class="secondary">영상4 종료</button>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="ws-client.js"></script>
+  <script src="phone.js"></script>
+</body>
+</html>

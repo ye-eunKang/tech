@@ -1,0 +1,13 @@
+{
+  "name": "fish-interaction-prototype",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "description": "NFC + phone orientation + WebSocket + TouchDesigner exhibition prototype",
+  "engines": {
+    "node": ">=20 <25"
+  }
+}
