@@ -96,6 +96,10 @@
         title.textContent = '물고기가 바다에 도착했습니다.';
         caption.textContent = `${currentFish} 신호가 TouchDesigner로 전달되었습니다.`;
         break;
+      case 'RESET_EXPERIENCE':
+        video2ShouldPlay = false;
+        await setScene(1);
+        break;
     }
   }
 
