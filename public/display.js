@@ -14,7 +14,7 @@
 
   const videos = {
     1: 'assets/#1_walk.mp4',
-    2: 'assets/video2.mp4',
+    2: 'assets/#4_water',
     3: 'assets/video3.mp4',
     4: 'assets/video4.mp4'
   };
