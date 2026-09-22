@@ -142,17 +142,65 @@
       $('levelHoldText').textContent = `${(held/1000).toFixed(1)} / ${(LEVEL_HOLD_MS/1000).toFixed(1)}초`;
 
       if (held >= LEVEL_HOLD_MS && !spawnSent) {
-        spawnSent = true;
-        send('SPAWN_FISH', {
-          beta: +smoothBeta.toFixed(2),
-          gamma: +smoothGamma.toFixed(2)
-        });
-        $('completeFishId').textContent = fishId;
-        show('COMPLETE');
-      }
-    }
+  spawnSent = true;
+
+  // TouchDesigner에 물고기 생성 신호
+  send('SPAWN_FISH', {
+    beta: +smoothBeta.toFixed(2),
+    gamma: +smoothGamma.toFixed(2)
+  });
+
+  $('completeFishId').textContent = fishId;
+  show('COMPLETE');
+
+  // 완료 화면을 3초 보여준 뒤 전체 인터랙션 리셋
+  setTimeout(() => {
+    send('RESET_EXPERIENCE');
+    resetPhone();
+  }, 3000);
+}
+ function resetPhone() {
+  state = 'READY';
+
+  beta = 0;
+  gamma = 0;
+
+  smoothBeta = 0;
+  smoothGamma = 0;
+
+  tiltHoldStart = null;
+  levelHoldStart = null;
+
+  lastSend = 0;
+
+  spawnSent = false;
+  score = 0;
+
+  // 진행 표시 초기화
+  if ($('tiltMeter')) {
+    $('tiltMeter').style.width = '0%';
   }
 
+  if ($('levelMeter')) {
+    $('levelMeter').style.width = '0%';
+  }
+
+  if ($('tiltHoldText')) {
+    $('tiltHoldText').textContent = '0.0s';
+  }
+
+  if ($('levelHoldText')) {
+    $('levelHoldText').textContent =
+      `0.0 / ${(LEVEL_HOLD_MS / 1000).toFixed(1)}초`;
+  }
+
+  if ($('gameScore')) {
+    $('gameScore').textContent = '0';
+  }
+
+  // 폰 첫 화면으로
+  show('READY');
+}
   function startGame() {
     score = 0;
     $('gameScore').textContent = '0';
