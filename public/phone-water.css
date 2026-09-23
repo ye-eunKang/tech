@@ -14,12 +14,19 @@ body.phone-v2 {
 }
 
 body.phone-v2 {
+  /* iPadOS 구버전 Safari는 dvh를 지원하지 않으므로 vh를 먼저 둔다. */
+  min-height: 100vh;
   min-height: 100dvh;
 }
 
 .phone-app {
   position: relative;
   width: 100vw;
+
+  /* iPadOS 구버전 Safari fallback.
+     dvh가 지원되면 아래 값이 덮어쓴다. */
+  height: 100vh;
+  min-height: 100vh;
   height: 100dvh;
   min-height: 100dvh;
   overflow: hidden;
