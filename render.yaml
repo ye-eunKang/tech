@@ -3,7 +3,7 @@ services:
     name: fish-interaction-prototype
     runtime: node
     plan: free
-    buildCommand: npm ci
+    buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /health
     envVars:
