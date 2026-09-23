@@ -627,3 +627,341 @@ button:disabled {
 .video-frame .scene-video.active {
   opacity: 1;
 }
+
+
+/* =========================================================
+   아이스크림 크레인 미니게임
+========================================================= */
+
+#stage-game.active {
+  display: block;
+}
+
+.crane-game {
+  color: var(--text);
+}
+
+.crane-game-ui {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.crane-game-title {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.crane-game-guide {
+  margin: 0;
+  max-width: 460px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.crane-hold {
+  flex: 0 0 auto;
+  min-width: 68px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  text-align: center;
+  background: rgba(255,255,255,0.05);
+}
+
+.crane-hold span {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.crane-hold small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.crane-playfield {
+  position: relative;
+  width: 100%;
+  height: 430px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: #f4f3ef;
+  touch-action: none;
+}
+
+.crane-rig {
+  position: absolute;
+  top: 0;
+  left: 48px;
+  z-index: 30;
+  width: 70px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.crane-line {
+  width: 12px;
+  height: 70px;
+  background: #4b4b4b;
+}
+
+.crane-head {
+  position: relative;
+  width: 66px;
+  height: 68px;
+}
+
+.crane-arm {
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 66px;
+  background: #111;
+  border-radius: 6px;
+  transform-origin: top center;
+  transition: transform 0.22s ease;
+}
+
+.crane-arm-left {
+  left: 20px;
+  transform: rotate(22deg);
+}
+
+.crane-arm-right {
+  right: 20px;
+  transform: rotate(-22deg);
+}
+
+.crane-head.open .crane-arm-left {
+  transform: rotate(-25deg);
+}
+
+.crane-head.open .crane-arm-right {
+  transform: rotate(25deg);
+}
+
+.grabbed-fish {
+  display: none;
+  position: relative;
+  width: 58px;
+  height: 30px;
+  margin-top: -12px;
+  border-radius: 55% 45% 45% 55%;
+  background: #343434;
+}
+
+.grabbed-fish::after {
+  content: "";
+  position: absolute;
+  right: -16px;
+  top: 5px;
+  width: 0;
+  height: 0;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  border-left: 18px solid #343434;
+}
+
+.grabbed-fish.show {
+  display: block;
+}
+
+.freezer {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  bottom: 18px;
+  height: 205px;
+  border: 2px solid #222;
+  background: #fafafa;
+}
+
+.freezer::before {
+  content: "";
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  top: -38px;
+  height: 38px;
+  border: 2px solid #222;
+  border-bottom: 0;
+  background: #eee;
+  transform: perspective(300px) rotateX(12deg);
+  transform-origin: bottom;
+}
+
+.freezer-glass {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  top: -27px;
+  height: 88px;
+  overflow: hidden;
+  border: 1px solid #333;
+  background: rgba(205, 212, 216, 0.72);
+}
+
+.freezer-front {
+  position: absolute;
+  inset: 70px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #222;
+  font-size: 15px;
+  letter-spacing: 0.08em;
+}
+
+.ice-silhouette {
+  position: absolute;
+  display: block;
+  background: #343434;
+  opacity: 0.9;
+}
+
+.ice-bar {
+  left: 11%;
+  top: 22px;
+  width: 48px;
+  height: 22px;
+  border-radius: 7px;
+  transform: rotate(-18deg);
+}
+
+.ice-bar::after {
+  content: "";
+  position: absolute;
+  right: -14px;
+  top: 8px;
+  width: 16px;
+  height: 6px;
+  border-radius: 4px;
+  background: #343434;
+}
+
+.ice-cone {
+  left: 25%;
+  top: 14px;
+  width: 34px;
+  height: 38px;
+  clip-path: polygon(50% 100%, 0 0, 100% 0);
+  transform: rotate(16deg);
+}
+
+.ice-cup {
+  right: 10%;
+  top: 16px;
+  width: 42px;
+  height: 34px;
+  border-radius: 8px 8px 14px 14px;
+  transform: rotate(12deg);
+}
+
+.ice-tube {
+  right: 27%;
+  top: 28px;
+  width: 62px;
+  height: 16px;
+  border-radius: 999px;
+  transform: rotate(-22deg);
+}
+
+.ice-sandwich {
+  left: 39%;
+  top: 42px;
+  width: 48px;
+  height: 25px;
+  border-radius: 5px;
+  transform: rotate(8deg);
+}
+
+.ice-fish {
+  left: 50%;
+  top: 18px;
+  width: 64px;
+  height: 34px;
+  border-radius: 58% 44% 44% 58%;
+  transform: translateX(-50%) rotate(-4deg);
+  z-index: 5;
+}
+
+.ice-fish::after {
+  content: "";
+  position: absolute;
+  right: -20px;
+  top: 6px;
+  width: 0;
+  height: 0;
+  border-top: 11px solid transparent;
+  border-bottom: 11px solid transparent;
+  border-left: 22px solid #343434;
+}
+
+.ice-fish.hidden {
+  visibility: hidden;
+}
+
+.crane-progress {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  bottom: 4px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.12);
+  z-index: 40;
+}
+
+.crane-progress > span {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: #111;
+  transition: width 0.05s linear;
+}
+
+@media (max-width: 560px) {
+  .crane-game-ui {
+    align-items: center;
+  }
+
+  .crane-game-title {
+    font-size: 16px;
+  }
+
+  .crane-game-guide {
+    font-size: 12px;
+  }
+
+  .crane-playfield {
+    height: 390px;
+  }
+
+  .freezer {
+    height: 180px;
+  }
+
+  .freezer-front {
+    inset: 62px 0 0;
+  }
+}
+
+@media (max-width: 360px) {
+  .crane-playfield {
+    height: 350px;
+  }
+
+  .crane-hold {
+    min-width: 58px;
+    padding: 7px 8px;
+  }
+}
