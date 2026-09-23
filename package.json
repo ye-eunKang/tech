@@ -9,5 +9,8 @@
   "description": "NFC + phone orientation + WebSocket + TouchDesigner exhibition prototype",
   "engines": {
     "node": ">=20 <25"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
   }
 }
