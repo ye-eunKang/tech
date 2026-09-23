@@ -2,130 +2,285 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+  />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#203e53" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <meta name="theme-color" content="#071a25" />
-  <title>물고기는 어디에 — 인터랙션</title>
+
+  <title>물고기는 어디에</title>
+
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="phone-water.css" />
 </head>
-<body class="phone-page">
-  <main class="shell">
-    <div class="header">
-      <div>
-        <div class="eyebrow">물고기는 어디에</div>
-        <h1 style="margin:4px 0 0;font-size:24px">휴대폰 인터랙션</h1>
-      </div>
-      <div id="conn" class="status-pill">연결 중…</div>
+
+<body class="phone-page phone-v2">
+  <main id="phoneApp" class="phone-app">
+    <canvas
+      id="waterCanvas"
+      class="phone-water-canvas"
+      aria-hidden="true"
+    ></canvas>
+
+    <div
+      id="conn"
+      class="phone-connection"
+      aria-hidden="true"
+    >
+      연결 중…
     </div>
 
-    <section class="card">
-      <div id="stage-ready" class="stage active">
-        <p class="instruction">휴대폰을 손에 들고 시작해 주세요.</p>
-        <p class="sub">전시 화면은 이미 다음 장면으로 이동했습니다. 시작 버튼을 누르면 기울기 센서를 사용합니다.</p>
-        <div class="actions"><button id="startBtn">시작하기</button></div>
+    <!--
+      디폴트 화면.
+      마지막 수평 인터랙션 성공 뒤에도 이 화면으로 돌아온다.
+    -->
+    <section
+      id="stage-ready"
+      class="stage phone-stage phone-stage-ready active"
+      aria-label="물고기는 어디에"
+    >
+      <div class="phone-default-logo-mark" aria-hidden="true">
+        <span class="logo-line-1">물고기는</span>
+        <span class="logo-line-2">어디에</span>
       </div>
+    </section>
 
-      <div id="stage-tilt" class="stage">
-        <p class="instruction">휴대폰을 오른쪽으로 천천히 기울여 보세요.</p>
-        <p class="sub">약 12°부터 영상이 재생되고, 30° 이상을 1.5초 유지하면 다음 장면으로 넘어갑니다.</p>
-        <div class="angle-grid">
-          <div class="angle"><span class="eyebrow">좌우 기울기</span><b id="gammaText">0.0°</b></div>
-          <div class="angle"><span class="eyebrow">유지 시간</span><b id="tiltHoldText">0.0s</b></div>
+    <!--
+      NFC 태그로 세션이 시작되면 이 단계가 열린다.
+      글씨나 UI 없이 물 애니메이션만 보인다.
+    -->
+    <section
+      id="stage-tilt"
+      class="stage phone-stage phone-stage-tilt"
+      aria-label="물을 기울여 주세요"
+    ></section>
+
+    <!-- 영상 3 진행 중에는 배경만 유지 -->
+    <section
+      id="stage-wait-game"
+      class="stage phone-stage phone-stage-passive"
+    ></section>
+
+    <!-- 아이스크림 뽑기 미니게임 -->
+    <section
+      id="stage-game"
+      class="stage phone-stage phone-stage-game"
+    >
+      <div id="craneGame" class="crane-game">
+        <div class="crane-game-ui">
+          <div>
+            <p class="crane-game-title">
+              붕어 아이스크림을 뽑아 주세요.
+            </p>
+            <p
+              id="craneGuide"
+              class="crane-game-guide"
+            >
+              휴대폰을 좌우로 기울여 집게를 움직이세요.
+            </p>
+          </div>
+
+          <div class="crane-hold">
+            <span id="craneHoldText">0.0</span>
+            <small>/ 3초</small>
+          </div>
         </div>
-        <div class="meter"><span id="tiltMeter"></span></div>
-      </div>
 
-      <div id="stage-wait-game" class="stage">
-        <p class="instruction">장면이 이어지고 있어요.</p>
-        <p class="sub">영상이 끝나면 휴대폰에 작은 게임이 나타납니다.</p>
-      </div>
+        <div
+          id="cranePlayfield"
+          class="crane-playfield"
+        >
+          <div
+            id="craneRig"
+            class="crane-rig"
+            aria-hidden="true"
+          >
+            <div
+              id="craneLine"
+              class="crane-line"
+            ></div>
 
-      <div id="stage-game" class="stage">
-        <div id="craneGame" class="crane-game">
-          <div class="crane-game-ui">
-            <div>
-              <p class="crane-game-title">붕어 아이스크림을 뽑아 주세요.</p>
-              <p id="craneGuide" class="crane-game-guide">휴대폰을 좌우로 기울여 집게를 움직이세요.</p>
+            <div
+              id="craneHead"
+              class="crane-head"
+            >
+              <span
+                class="crane-arm crane-arm-left"
+              ></span>
+              <span
+                class="crane-arm crane-arm-right"
+              ></span>
             </div>
-            <div class="crane-hold">
-              <span id="craneHoldText">0.0</span>
-              <small>/ 3초</small>
+
+            <div
+              id="grabbedFish"
+              class="grabbed-fish"
+            ></div>
+          </div>
+
+          <div class="freezer">
+            <div class="freezer-glass">
+              <span class="ice-silhouette ice-cone"></span>
+              <span class="ice-silhouette ice-bar"></span>
+              <span class="ice-silhouette ice-cup"></span>
+              <span class="ice-silhouette ice-tube"></span>
+              <span class="ice-silhouette ice-sandwich"></span>
+
+              <span
+                id="fishIcecream"
+                class="ice-silhouette ice-fish"
+                aria-label="붕어 아이스크림"
+              ></span>
+            </div>
+
+            <div class="freezer-front">
+              냉동고
             </div>
           </div>
 
-          <div id="cranePlayfield" class="crane-playfield">
-            <div id="craneRig" class="crane-rig" aria-hidden="true">
-              <div id="craneLine" class="crane-line"></div>
-              <div id="craneHead" class="crane-head">
-                <span class="crane-arm crane-arm-left"></span>
-                <span class="crane-arm crane-arm-right"></span>
-              </div>
-              <div id="grabbedFish" class="grabbed-fish"></div>
-            </div>
-
-            <div class="freezer">
-              <div class="freezer-glass">
-                <span class="ice-silhouette ice-cone"></span>
-                <span class="ice-silhouette ice-bar"></span>
-                <span class="ice-silhouette ice-cup"></span>
-                <span class="ice-silhouette ice-tube"></span>
-                <span class="ice-silhouette ice-sandwich"></span>
-                <span id="fishIcecream" class="ice-silhouette ice-fish" aria-label="붕어 아이스크림"></span>
-              </div>
-              <div class="freezer-front">냉동고</div>
-            </div>
-
-            <div class="crane-progress">
-              <span id="craneProgress"></span>
-            </div>
+          <div class="crane-progress">
+            <span id="craneProgress"></span>
           </div>
-        </div>
-      </div>
-
-      <div id="stage-wait-level" class="stage">
-        <p class="instruction">마지막 장면을 보고 있어요.</p>
-        <p class="sub">영상이 끝나면 휴대폰을 수평으로 맞추는 마지막 인터랙션이 시작됩니다.</p>
-      </div>
-
-      <div id="stage-level" class="stage">
-        <p class="instruction">휴대폰을 평평하게 유지해 주세요.</p>
-        <p class="sub">앞뒤·좌우가 각각 ±5° 안에 들어온 상태를 2초 동안 유지하면 물고기가 바다에 나타납니다.</p>
-        <div class="angle-grid">
-          <div class="angle"><span class="eyebrow">앞뒤 β</span><b id="betaText">0.0°</b></div>
-          <div class="angle"><span class="eyebrow">좌우 γ</span><b id="levelGammaText">0.0°</b></div>
-        </div>
-        <div class="meter"><span id="levelMeter"></span></div>
-        <p class="sub" id="levelHoldText">0.0 / 2.0초</p>
-      </div>
-
-      <div id="stage-complete" class="stage">
-        <div class="success">🐟</div>
-        <p class="instruction">물고기가 바다로 이동했습니다.</p>
-        <p class="sub" id="completeStatus"><b id="completeFishId"></b> 신호를 TouchDesigner로 전송 중입니다.</p>
-      </div>
-
-      <div id="stage-error" class="stage">
-        <p class="instruction">센서 권한을 사용할 수 없습니다.</p>
-        <p class="sub" id="errorText"></p>
-        <div class="actions"><button id="retryBtn">다시 시도</button></div>
-      </div>
-
-      <div id="debugPanel" class="debug">
-        <div class="eyebrow">Desktop debug controls</div>
-        <label>β <span id="debugBetaLabel">0</span>°<input id="debugBeta" type="range" min="-60" max="60" value="0" /></label>
-        <label>γ <span id="debugGammaLabel">0</span>°<input id="debugGamma" type="range" min="-60" max="60" value="0" /></label>
-        <div class="actions">
-          <button id="debugVideo3" class="secondary">영상3 종료</button>
-          <button id="debugVideo4" class="secondary">영상4 종료</button>
         </div>
       </div>
     </section>
+
+    <!-- 마지막 영상 진행 중에는 배경만 유지 -->
+    <section
+      id="stage-wait-level"
+      class="stage phone-stage phone-stage-passive"
+    ></section>
+
+    <!-- 마지막 수평 유지 인터랙션 -->
+    <section
+      id="stage-level"
+      class="stage phone-stage phone-stage-level"
+    >
+      <div class="level-card">
+        <p class="instruction">
+          휴대폰을 평평하게 유지해 주세요.
+        </p>
+
+        <p class="sub">
+          앞뒤·좌우가 각각 ±5° 안에 들어온 상태를
+          2초 동안 유지해 주세요.
+        </p>
+
+        <div class="angle-grid">
+          <div class="angle">
+            <span class="eyebrow">앞뒤 β</span>
+            <b id="betaText">0.0°</b>
+          </div>
+
+          <div class="angle">
+            <span class="eyebrow">좌우 γ</span>
+            <b id="levelGammaText">0.0°</b>
+          </div>
+        </div>
+
+        <div class="meter">
+          <span id="levelMeter"></span>
+        </div>
+
+        <p
+          class="sub"
+          id="levelHoldText"
+        >
+          0.0 / 2.0초
+        </p>
+      </div>
+    </section>
+
+    <section
+      id="stage-error"
+      class="stage phone-stage phone-stage-error"
+    >
+      <div class="level-card">
+        <p class="instruction">
+          기울기 센서를 사용할 수 없습니다.
+        </p>
+
+        <p
+          class="sub"
+          id="errorText"
+        ></p>
+
+        <div class="actions">
+          <button
+            id="retryBtn"
+            type="button"
+          >
+            다시 시도
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ?debug=1 일 때만 표시 -->
+    <div
+      id="debugPanel"
+      class="debug phone-debug"
+    >
+      <div class="eyebrow">
+        Desktop debug controls
+      </div>
+
+      <label>
+        β <span id="debugBetaLabel">0</span>°
+        <input
+          id="debugBeta"
+          type="range"
+          min="-84"
+          max="84"
+          value="0"
+        />
+      </label>
+
+      <label>
+        γ <span id="debugGammaLabel">0</span>°
+        <input
+          id="debugGamma"
+          type="range"
+          min="-84"
+          max="84"
+          value="0"
+        />
+      </label>
+
+      <div class="actions">
+        <button
+          id="debugVideo3"
+          class="secondary"
+          type="button"
+        >
+          영상3 종료
+        </button>
+
+        <button
+          id="debugVideo4"
+          class="secondary"
+          type="button"
+        >
+          영상4 종료
+        </button>
+
+        <button
+          id="debugReset"
+          class="secondary"
+          type="button"
+        >
+          로고로 리셋
+        </button>
+      </div>
+    </div>
   </main>
 
   <script src="ws-client.js"></script>
+  <script src="water-phone.js"></script>
   <script src="phone.js"></script>
 </body>
 </html>
