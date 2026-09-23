@@ -965,3 +965,41 @@ button:disabled {
     padding: 7px 8px;
   }
 }
+
+
+/* 게임 중 브라우저 UI가 차지하는 공간을 고려한 컴팩트 레이아웃 */
+.phone-page.game-mode {
+  overflow: hidden;
+}
+
+.phone-page.game-mode .shell {
+  width: 100%;
+  min-height: 100dvh;
+  padding:
+    max(6px, env(safe-area-inset-top))
+    6px
+    max(6px, env(safe-area-inset-bottom));
+}
+
+.phone-page.game-mode .header {
+  display: none;
+}
+
+.phone-page.game-mode .card {
+  padding: 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.phone-page.game-mode .crane-game-ui {
+  margin-bottom: 6px;
+}
+
+.phone-page.game-mode .crane-playfield {
+  height: calc(100dvh - 86px);
+  min-height: 330px;
+  max-height: 560px;
+}
