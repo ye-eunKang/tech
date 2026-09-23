@@ -118,8 +118,22 @@
     video.dataset.scene = String(n);
     video.pause();
     video.loop = n === 1;
-    video.playbackRate = 1;
+    video.autoplay = true;
+    video.playsInline = true;
+
+    // iPad/iPhone Safari는 자동재생 시 muted/defaultMuted 상태를
+    // src 로드 전에 확실히 설정해 두는 편이 안정적이다.
     video.muted = !soundEnabled;
+    video.defaultMuted = !soundEnabled;
+
+    if (!soundEnabled) {
+      video.setAttribute('muted', '');
+    } else {
+      video.removeAttribute('muted');
+    }
+
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
 
     if (video.getAttribute('src') !== src) {
       video.src = src;
@@ -152,10 +166,8 @@
         video.currentTime = 0;
       } catch (_) {}
 
-      try {
-        await video.play();
-        await waitForPaintedFrame(video);
-      } catch (_) {}
+      // iOS Safari는 opacity:0인 standby video의 autoplay를 거부할 수 있다.
+      // 여기서는 재생을 강제하지 않고, 화면에 active로 올린 뒤 setScene()에서 재생한다.
     }
   }
 
@@ -245,6 +257,21 @@
     activeVideo = nextVideo;
     standbyVideo = oldVideo;
     scene = n;
+
+    // iPad Safari에서 자동재생이 안정적으로 동작하도록
+    // 실제로 보이는(active) 레이어가 된 다음 play()를 호출한다.
+    if (n !== 2) {
+      activeVideo.play().catch(() => {
+        // canplay 시점에 한 번 더 시도한다.
+        activeVideo.addEventListener(
+          'canplay',
+          () => {
+            activeVideo.play().catch(() => {});
+          },
+          { once: true }
+        );
+      });
+    }
 
     setTimeout(() => {
       if (standbyVideo !== activeVideo) {
@@ -376,6 +403,21 @@
         soundEnabled ? '소리 끄기' : '소리 켜기';
     });
   }
+
+  // iPad Safari에서 탭 복귀/페이지 복원 뒤 자동재생이 멈추는 경우 다시 시도한다.
+  const resumeVisibleVideo = () => {
+    if (
+      document.visibilityState === 'visible' &&
+      activeVideo &&
+      scene !== 2 &&
+      activeVideo.paused
+    ) {
+      activeVideo.play().catch(() => {});
+    }
+  };
+
+  document.addEventListener('visibilitychange', resumeVisibleVideo);
+  window.addEventListener('pageshow', resumeVisibleVideo);
 
   // 시작하자마자 2번 영상을 미리 내려받아 NFC 태그 직후 바로 보이게 한다.
   preloadScene(2);
