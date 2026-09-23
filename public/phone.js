@@ -75,6 +75,20 @@
         levelHoldStart = null;
         show('LEVEL');
       }
+
+      if (msg.type === 'SPAWN_ACK') {
+        const completeStatus = $('completeStatus');
+
+        if (completeStatus) {
+          if (Number(msg.delivered) > 0) {
+            completeStatus.textContent =
+              `${fishId} 신호가 TouchDesigner에 전달되었습니다.`;
+          } else {
+            completeStatus.textContent =
+              'TouchDesigner가 현재 서버에 연결되어 있지 않습니다.';
+          }
+        }
+      }
     }
   });
 
@@ -235,7 +249,13 @@
         });
 
         const completeFishId = $('completeFishId');
+        const completeStatus = $('completeStatus');
+
         if (completeFishId) completeFishId.textContent = fishId;
+        if (completeStatus) {
+          completeStatus.textContent =
+            `${fishId} 신호를 TouchDesigner로 전송 중입니다.`;
+        }
 
         show('COMPLETE');
 
