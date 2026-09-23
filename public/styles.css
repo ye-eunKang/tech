@@ -610,3 +610,20 @@ button:disabled {
   }
 
 }
+
+
+/* =========================================================
+   디스플레이 영상 전환
+   두 개의 video 레이어를 겹쳐 다음 영상을 먼저 준비한 뒤 전환한다.
+========================================================= */
+
+.video-frame .scene-video {
+  opacity: 0;
+  transition: opacity 220ms ease;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+.video-frame .scene-video.active {
+  opacity: 1;
+}
