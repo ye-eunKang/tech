@@ -291,9 +291,11 @@
       case 'TILT':
         if (scene !== 2) break;
 
+        const pourStrength = Number(msg.pourStrength || 0);
+
         activeVideo.playbackRate = Math.max(
-          0.55,
-          Math.min(2, Math.abs(msg.gamma || 0) / 22)
+          0.7,
+          Math.min(1.35, 0.7 + pourStrength * 0.65)
         );
 
         video2ShouldPlay = Boolean(msg.playing);
