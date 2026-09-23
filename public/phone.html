@@ -7,11 +7,13 @@
   <title>물고기는 어디에 — 인터랙션</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
-  <body class="phone-page">
+<body class="phone-page">
   <main class="shell">
     <div class="header">
-      <div><div class="eyebrow">물고기는 어디에</div><h1 style="margin:4px 0 0;font-size:24px">휴대폰 인터랙션</h1></div>
+      <div>
+        <div class="eyebrow">물고기는 어디에</div>
+        <h1 style="margin:4px 0 0;font-size:24px">휴대폰 인터랙션</h1>
+      </div>
       <div id="conn" class="status-pill">연결 중…</div>
     </div>
 
@@ -33,17 +35,21 @@
       </div>
 
       <div id="stage-wait-game" class="stage">
-        <p class="instruction">장면이 이어지고 있어요.</p><p class="sub">영상이 끝나면 휴대폰에 작은 게임이 나타납니다.</p>
+        <p class="instruction">장면이 이어지고 있어요.</p>
+        <p class="sub">영상이 끝나면 휴대폰에 작은 게임이 나타납니다.</p>
       </div>
 
       <div id="stage-game" class="stage">
         <p class="instruction">헤엄치는 물고기를 5번 터치해 주세요.</p>
         <div class="game-score">잡은 횟수 <span id="gameScore">0</span> / 5</div>
-        <div id="gameArea" class="game-area"><button id="fishTarget" class="fish-target" aria-label="물고기 잡기"></button></div>
+        <div id="gameArea" class="game-area">
+          <button id="fishTarget" class="fish-target" aria-label="물고기 잡기"></button>
+        </div>
       </div>
 
       <div id="stage-wait-level" class="stage">
-        <p class="instruction">마지막 장면을 보고 있어요.</p><p class="sub">영상이 끝나면 휴대폰을 수평으로 맞추는 마지막 인터랙션이 시작됩니다.</p>
+        <p class="instruction">마지막 장면을 보고 있어요.</p>
+        <p class="sub">영상이 끝나면 휴대폰을 수평으로 맞추는 마지막 인터랙션이 시작됩니다.</p>
       </div>
 
       <div id="stage-level" class="stage">
@@ -80,6 +86,7 @@
       </div>
     </section>
   </main>
+
   <script src="ws-client.js"></script>
   <script src="phone.js"></script>
 </body>
