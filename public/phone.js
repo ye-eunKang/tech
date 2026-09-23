@@ -43,6 +43,7 @@
 
   function show(name) {
     state = name;
+    document.body.classList.toggle('game-mode', name === 'GAME');
     stages.forEach(el => el.classList.remove('active'));
 
     const map = {
