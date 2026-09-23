@@ -115,6 +115,7 @@
   async function prepareVideo(video, n) {
     const src = videos[n];
 
+    video.dataset.scene = String(n);
     video.pause();
     video.loop = n === 1;
     video.playbackRate = 1;
@@ -228,7 +229,6 @@
     const oldVideo = activeVideo;
     const nextVideo = standbyVideo;
 
-    scene = n;
     video2ShouldPlay = false;
 
     if (waiting) waiting.classList.remove('show');
@@ -244,6 +244,7 @@
 
     activeVideo = nextVideo;
     standbyVideo = oldVideo;
+    scene = n;
 
     setTimeout(() => {
       if (standbyVideo !== activeVideo) {
@@ -334,16 +335,20 @@
   }
 
   function onEnded(event) {
-    if (event.currentTarget !== activeVideo) return;
+    const endedVideo = event.currentTarget;
+    if (endedVideo !== activeVideo) return;
 
-    if (scene === 2 && video2ShouldPlay) return;
+    const endedScene = Number(endedVideo.dataset.scene || 0);
+    if (endedScene !== scene) return;
 
-    if (scene === 3) {
+    if (endedScene === 2 && video2ShouldPlay) return;
+
+    if (endedScene === 3) {
       send('VIDEO3_ENDED');
       waitingScreen('game');
     }
 
-    if (scene === 4) {
+    if (endedScene === 4) {
       send('VIDEO4_ENDED');
 
       if (title) title.textContent = '휴대폰을 수평으로 맞춰 주세요.';
