@@ -62,10 +62,8 @@
     },
 
     onOpen() {
-      if (!sessionStarted) {
-        sessionStarted = true;
-        send('SESSION_START');
-      }
+      // 서버 연결만 유지하고, 전시 시작 신호는
+      // 사용자가 '시작하기' 버튼을 눌렀을 때 보낸다.
     },
 
     onMessage(msg) {
@@ -86,6 +84,11 @@
 
   async function requestSensorPermission() {
     try {
+      if (!sessionStarted) {
+        sessionStarted = true;
+        send('SESSION_START');
+      }
+
       if (debug) {
         show('TILT');
         return;
@@ -259,6 +262,7 @@
 
     spawnSent = false;
     score = 0;
+    sessionStarted = false;
 
     const tiltMeter = $('tiltMeter');
     const levelMeter = $('levelMeter');
