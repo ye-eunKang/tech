@@ -11,6 +11,10 @@
   const SEND_INTERVAL_MS = 50;
   const SMOOTHING = 0.18;
 
+  const CRANE_HOLD_MS = 3000;
+  const CRANE_STILL_TOLERANCE = 2.0;
+  const CRANE_SENSITIVITY = 18;
+
   let state = 'READY';
   let beta = 0;
   let gamma = 0;
@@ -24,6 +28,14 @@
   let sensorAttached = false;
   let sessionStarted = false;
   let resetTimer = null;
+
+  let gameTilt = 0;
+  let gameTargetX = 0;
+  let gameClawX = 0;
+  let gameHoldAnchor = null;
+  let gameHoldStart = null;
+  let gameDropping = false;
+  let gameRaf = null;
 
   const $ = id => document.getElementById(id);
   const conn = $('conn');
@@ -98,6 +110,13 @@
 
   async function requestSensorPermission() {
     try {
+      // 지원 브라우저에서는 시작 버튼의 사용자 제스처를 이용해
+      // 브라우저 UI를 숨기는 fullscreen을 요청한다.
+      const root = document.documentElement;
+      if (!document.fullscreenElement && root.requestFullscreen) {
+        root.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+      }
+
       if (!sessionStarted) {
         sessionStarted = true;
         send('SESSION_START');
@@ -204,6 +223,10 @@
       }
     }
 
+    if (state === 'GAME') {
+      updateCraneTilt(rawBeta, rawGamma, now);
+    }
+
     if (state === 'LEVEL') {
       const betaText = $('betaText');
       const levelGammaText = $('levelGammaText');
@@ -284,12 +307,12 @@
     score = 0;
     sessionStarted = false;
 
+    resetCraneGame();
+
     const tiltMeter = $('tiltMeter');
     const levelMeter = $('levelMeter');
     const tiltHoldText = $('tiltHoldText');
     const levelHoldText = $('levelHoldText');
-    const gameScore = $('gameScore');
-
     if (tiltMeter) tiltMeter.style.width = '0%';
     if (levelMeter) levelMeter.style.width = '0%';
     if (tiltHoldText) tiltHoldText.textContent = '0.0s';
@@ -297,56 +320,228 @@
       levelHoldText.textContent =
         `0.0 / ${(LEVEL_HOLD_MS / 1000).toFixed(1)}초`;
     }
-    if (gameScore) gameScore.textContent = '0';
 
     show('READY');
   }
 
   function startGame() {
-    score = 0;
-
-    const gameScore = $('gameScore');
-    if (gameScore) gameScore.textContent = '0';
-
     show('GAME');
-    requestAnimationFrame(moveFish);
+    resetCraneGame();
+
+    const playfield = $('cranePlayfield');
+    if (playfield) {
+      const startX = Math.max(44, playfield.clientWidth * 0.16);
+      gameClawX = startX;
+      gameTargetX = startX;
+    }
+
+    gameRaf = requestAnimationFrame(craneGameLoop);
   }
 
-  function moveFish() {
-    const area = $('gameArea');
-    const fishTarget = $('fishTarget');
+  function getCraneTilt(rawBeta, rawGamma) {
+    const orientationAngle =
+      screen.orientation && typeof screen.orientation.angle === 'number'
+        ? screen.orientation.angle
+        : (window.orientation || 0);
 
-    if (!area || !fishTarget) return;
+    if (Math.abs(orientationAngle) === 90 || orientationAngle === 270) {
+      return orientationAngle === 90 ? rawBeta : -rawBeta;
+    }
 
-    const pad = 52;
-    const width = Math.max(1, area.clientWidth - pad * 2);
-    const height = Math.max(1, area.clientHeight - pad * 2);
-
-    const x = pad + Math.random() * width;
-    const y = pad + Math.random() * height;
-
-    fishTarget.style.left = `${x}px`;
-    fishTarget.style.top = `${y}px`;
+    return rawGamma;
   }
 
-  const fishTarget = $('fishTarget');
+  function updateCraneTilt(rawBeta, rawGamma, now) {
+    if (gameDropping || state !== 'GAME') return;
 
-  if (fishTarget) {
-    fishTarget.addEventListener('click', () => {
-      if (state !== 'GAME') return;
+    const playfield = $('cranePlayfield');
+    if (!playfield) return;
 
-      score += 1;
+    const currentTilt = getCraneTilt(rawBeta, rawGamma);
+    gameTilt = currentTilt;
 
-      const gameScore = $('gameScore');
-      if (gameScore) gameScore.textContent = String(score);
+    const minX = 42;
+    const maxX = Math.max(minX, playfield.clientWidth - 42);
+    gameTargetX =
+      (playfield.clientWidth / 2) + (currentTilt * CRANE_SENSITIVITY);
+    gameTargetX = Math.max(minX, Math.min(maxX, gameTargetX));
 
-      if (score >= 5) {
-        send('GAME_COMPLETE');
-        show('WAIT_LEVEL');
-      } else {
-        moveFish();
+    if (gameHoldAnchor == null) {
+      gameHoldAnchor = currentTilt;
+      gameHoldStart = now;
+    } else {
+      const delta = Math.abs(currentTilt - gameHoldAnchor);
+
+      if (delta > CRANE_STILL_TOLERANCE) {
+        gameHoldAnchor = currentTilt;
+        gameHoldStart = now;
+        setCraneProgress(0);
       }
-    });
+    }
+  }
+
+  function craneGameLoop(now) {
+    if (state !== 'GAME') {
+      gameRaf = null;
+      return;
+    }
+
+    const rig = $('craneRig');
+
+    if (!gameDropping && rig) {
+      gameClawX += (gameTargetX - gameClawX) * 0.18;
+      rig.style.left = `${gameClawX}px`;
+
+      if (gameHoldStart != null) {
+        const elapsed = Math.max(0, now - gameHoldStart);
+        const ratio = Math.min(1, elapsed / CRANE_HOLD_MS);
+        setCraneProgress(ratio);
+
+        if (ratio >= 1) {
+          triggerCraneDrop();
+        }
+      }
+    }
+
+    gameRaf = requestAnimationFrame(craneGameLoop);
+  }
+
+  function setCraneProgress(ratio) {
+    const progress = $('craneProgress');
+    const holdText = $('craneHoldText');
+
+    if (progress) {
+      progress.style.width = `${Math.max(0, Math.min(100, ratio * 100))}%`;
+    }
+
+    if (holdText) {
+      holdText.textContent =
+        `${Math.min(CRANE_HOLD_MS, ratio * CRANE_HOLD_MS / 1).toFixed(0) / 1000}`;
+    }
+  }
+
+  function resetCraneGame() {
+    if (gameRaf) {
+      cancelAnimationFrame(gameRaf);
+      gameRaf = null;
+    }
+
+    gameHoldAnchor = null;
+    gameHoldStart = null;
+    gameDropping = false;
+    gameTilt = 0;
+
+    const playfield = $('cranePlayfield');
+    const rig = $('craneRig');
+    const line = $('craneLine');
+    const head = $('craneHead');
+    const guide = $('craneGuide');
+    const fish = $('fishIcecream');
+    const grabbed = $('grabbedFish');
+
+    if (playfield) {
+      const startX = Math.max(44, playfield.clientWidth * 0.16);
+      gameClawX = startX;
+      gameTargetX = startX;
+    }
+
+    if (rig) rig.style.left = `${gameClawX || 48}px`;
+    if (line) {
+      line.style.transition = 'none';
+      line.style.height = '70px';
+      requestAnimationFrame(() => {
+        line.style.transition = '';
+      });
+    }
+
+    if (head) head.classList.remove('open');
+    if (guide) {
+      guide.textContent =
+        '휴대폰을 좌우로 기울여 집게를 움직이고, 원하는 위치에서 3초간 멈추세요.';
+    }
+
+    if (fish) fish.classList.remove('hidden');
+    if (grabbed) grabbed.classList.remove('show');
+
+    setCraneProgress(0);
+  }
+
+  function triggerCraneDrop() {
+    if (gameDropping || state !== 'GAME') return;
+
+    const playfield = $('cranePlayfield');
+    const rig = $('craneRig');
+    const line = $('craneLine');
+    const head = $('craneHead');
+    const guide = $('craneGuide');
+    const fish = $('fishIcecream');
+    const grabbed = $('grabbedFish');
+
+    if (!playfield || !rig || !line || !head || !fish) return;
+
+    gameDropping = true;
+    gameHoldStart = null;
+    gameHoldAnchor = null;
+    setCraneProgress(1);
+
+    if (guide) guide.textContent = '집게가 내려갑니다.';
+    if (navigator.vibrate) navigator.vibrate(50);
+
+    head.classList.add('open');
+
+    const fieldRect = playfield.getBoundingClientRect();
+    const fishRect = fish.getBoundingClientRect();
+    const targetCenterY =
+      fishRect.top - fieldRect.top + (fishRect.height / 2);
+
+    const dropHeight = Math.max(
+      115,
+      targetCenterY - 28
+    );
+
+    line.style.transition =
+      'height 0.85s cubic-bezier(0.25, 1, 0.5, 1)';
+    line.style.height = `${dropHeight}px`;
+
+    setTimeout(() => {
+      const targetCenterX =
+        fishRect.left - fieldRect.left + (fishRect.width / 2);
+      const caught = Math.abs(gameClawX - targetCenterX) <= 46;
+
+      head.classList.remove('open');
+      if (navigator.vibrate) navigator.vibrate([60, 35, 60]);
+
+      if (caught) {
+        fish.classList.add('hidden');
+        if (grabbed) grabbed.classList.add('show');
+        if (guide) guide.textContent = '붕어 아이스크림을 잡았습니다!';
+      } else if (guide) {
+        guide.textContent = '놓쳤어요. 다시 위치를 맞춰 보세요.';
+      }
+
+      setTimeout(() => {
+        line.style.transition =
+          'height 0.8s cubic-bezier(0.4, 0, 0.6, 1)';
+        line.style.height = '70px';
+
+        setTimeout(() => {
+          if (caught) {
+            if (gameRaf) {
+              cancelAnimationFrame(gameRaf);
+              gameRaf = null;
+            }
+
+            send('GAME_COMPLETE');
+            show('WAIT_LEVEL');
+          } else {
+            gameDropping = false;
+            gameHoldAnchor = gameTilt;
+            gameHoldStart = performance.now();
+            setCraneProgress(0);
+          }
+        }, 850);
+      }, 350);
+    }, 900);
   }
 
   const startBtn = $('startBtn');
