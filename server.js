@@ -34,6 +34,19 @@ function serve(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
 
   if (url.pathname === '/health') {
+    const roles = {
+      phone: 0,
+      display: 0,
+      touchdesigner: 0,
+      unknown: 0
+    };
+
+    for (const client of clients) {
+      if (client.readyState !== WebSocket.OPEN) continue;
+      const role = roles[client.role] === undefined ? 'unknown' : client.role;
+      roles[role] += 1;
+    }
+
     res.writeHead(200, {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-store'
@@ -41,6 +54,7 @@ function serve(req, res) {
     res.end(JSON.stringify({
       ok: true,
       clients: clients.size,
+      roles,
       time: Date.now()
     }));
     return;
@@ -163,7 +177,30 @@ function handleMessage(client, raw) {
   }
 
   if (msg.type === 'SPAWN_FISH') {
-    broadcast(c => c.role === 'touchdesigner', payload, client);
+    const tdClients = [...clients].filter(
+      c => c.role === 'touchdesigner' && c.readyState === WebSocket.OPEN
+    );
+
+    for (const td of tdClients) {
+      send(td, payload);
+    }
+
+    const ack = {
+      type: 'SPAWN_ACK',
+      fishId,
+      delivered: tdClients.length,
+      serverTime: Date.now()
+    };
+
+    send(client, ack);
+    broadcast(c => c.role === 'display', ack, client);
+
+    console.log(
+      '[SPAWN_FISH]',
+      fishId,
+      'touchdesigner clients:',
+      tdClients.length
+    );
   }
 }
 
