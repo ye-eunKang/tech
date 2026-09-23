@@ -88,10 +88,89 @@ function serve(req, res) {
       return;
     }
 
-    res.writeHead(200, {
-      'Content-Type': MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream',
+    const ext = path.extname(filePath).toLowerCase();
+    const contentType = MIME[ext] || 'application/octet-stream';
+    const isVideo = ext === '.mp4';
+    const range = req.headers.range;
+
+    // iPad / iPhone Safari는 MP4 재생 시 byte-range 요청을 적극적으로 사용한다.
+    // Range를 지원하지 않으면 데스크톱에서는 보여도 iOS Safari에서
+    // 검은 화면으로 남는 경우가 있어 206 Partial Content를 지원한다.
+    if (isVideo && range) {
+      const match = /^bytes=(\d*)-(\d*)$/.exec(range.trim());
+
+      if (!match) {
+        res.writeHead(416, {
+          'Content-Range': `bytes */${stat.size}`,
+          'Accept-Ranges': 'bytes'
+        });
+        res.end();
+        return;
+      }
+
+      let start;
+      let end;
+
+      if (match[1] === '' && match[2] !== '') {
+        const suffixLength = Number(match[2]);
+        start = Math.max(0, stat.size - suffixLength);
+        end = stat.size - 1;
+      } else {
+        start = Number(match[1] || 0);
+        end = match[2] ? Number(match[2]) : stat.size - 1;
+      }
+
+      if (
+        !Number.isFinite(start) ||
+        !Number.isFinite(end) ||
+        start < 0 ||
+        end < start ||
+        start >= stat.size
+      ) {
+        res.writeHead(416, {
+          'Content-Range': `bytes */${stat.size}`,
+          'Accept-Ranges': 'bytes'
+        });
+        res.end();
+        return;
+      }
+
+      end = Math.min(end, stat.size - 1);
+      const chunkSize = end - start + 1;
+
+      res.writeHead(206, {
+        'Content-Type': contentType,
+        'Content-Length': chunkSize,
+        'Content-Range': `bytes ${start}-${end}/${stat.size}`,
+        'Accept-Ranges': 'bytes',
+        'Cache-Control': 'no-cache'
+      });
+
+      if (req.method === 'HEAD') {
+        res.end();
+        return;
+      }
+
+      fs.createReadStream(filePath, { start, end }).pipe(res);
+      return;
+    }
+
+    const headers = {
+      'Content-Type': contentType,
+      'Content-Length': stat.size,
       'Cache-Control': 'no-cache'
-    });
+    };
+
+    if (isVideo) {
+      headers['Accept-Ranges'] = 'bytes';
+    }
+
+    res.writeHead(200, headers);
+
+    if (req.method === 'HEAD') {
+      res.end();
+      return;
+    }
 
     fs.createReadStream(filePath).pipe(res);
   });
