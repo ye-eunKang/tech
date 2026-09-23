@@ -65,7 +65,7 @@ body.phone-v2 {
   pointer-events: none;
 }
 
-.phone-stage-ready.active {
+.phone-v2 .phone-stage-ready.active {
   display: flex;
 }
 
@@ -116,8 +116,8 @@ body.phone-v2 {
   justify-content: center;
 }
 
-.phone-stage-level.active,
-.phone-stage-error.active {
+.phone-v2 .phone-stage-level.active,
+.phone-v2 .phone-stage-error.active {
   display: flex;
 }
 
