@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const https = require('https');
-const crypto = require('crypto');
+const { WebSocketServer, WebSocket } = require('ws');
 
 const PORT = Number(process.env.PORT || 8080);
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -22,6 +22,14 @@ const MIME = {
   '.svg': 'image/svg+xml'
 };
 
+const clients = new Set();
+
+function cleanFishId(value) {
+  if (typeof value !== 'string') return null;
+  const cleaned = value.trim().slice(0, 64);
+  return /^[A-Za-z0-9_-]+$/.test(cleaned) ? cleaned : null;
+}
+
 function serve(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
 
@@ -30,72 +38,71 @@ function serve(req, res) {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-store'
     });
-    res.end(JSON.stringify({ ok: true, clients: clients.size, time: Date.now() }));
+    res.end(JSON.stringify({
+      ok: true,
+      clients: clients.size,
+      time: Date.now()
+    }));
     return;
   }
 
-  let pathname = decodeURIComponent(url.pathname);
-  if (pathname === '/') pathname = '/display.html';
-  const normalized = path.normalize(pathname).replace(/^([.][.][/\\])+/, '');
-  const filePath = path.join(PUBLIC_DIR, normalized);
-  if (!filePath.startsWith(PUBLIC_DIR)) {
-    res.writeHead(403); res.end('Forbidden'); return;
+  let pathname;
+  try {
+    pathname = decodeURIComponent(url.pathname);
+  } catch {
+    res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Bad request');
+    return;
   }
+
+  if (pathname === '/') pathname = '/display.html';
+
+  const relativePath = pathname.replace(/^\/+/, '');
+  const filePath = path.resolve(PUBLIC_DIR, relativePath);
+
+  if (!filePath.startsWith(PUBLIC_DIR + path.sep) && filePath !== PUBLIC_DIR) {
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Forbidden');
+    return;
+  }
+
   fs.stat(filePath, (err, stat) => {
     if (err || !stat.isFile()) {
-      res.writeHead(404, {'Content-Type': 'text/plain; charset=utf-8'});
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end('Not found');
       return;
     }
+
     res.writeHead(200, {
       'Content-Type': MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream',
       'Cache-Control': 'no-cache'
     });
+
     fs.createReadStream(filePath).pipe(res);
   });
 }
 
 const useHttps = Boolean(CERT_FILE && KEY_FILE);
 const server = useHttps
-  ? https.createServer({ cert: fs.readFileSync(CERT_FILE), key: fs.readFileSync(KEY_FILE) }, serve)
+  ? https.createServer({
+      cert: fs.readFileSync(CERT_FILE),
+      key: fs.readFileSync(KEY_FILE)
+    }, serve)
   : http.createServer(serve);
 
-const clients = new Set();
-
-function encodeFrame(text, opcode = 0x1) {
-  const payload = Buffer.from(text);
-  let header;
-  if (payload.length < 126) {
-    header = Buffer.alloc(2);
-    header[1] = payload.length;
-  } else if (payload.length < 65536) {
-    header = Buffer.alloc(4);
-    header[1] = 126;
-    header.writeUInt16BE(payload.length, 2);
-  } else {
-    header = Buffer.alloc(10);
-    header[1] = 127;
-    header.writeBigUInt64BE(BigInt(payload.length), 2);
-  }
-  header[0] = 0x80 | opcode;
-  return Buffer.concat([header, payload]);
-}
+const wss = new WebSocketServer({ noServer: true });
 
 function send(client, payload) {
-  if (!client.socket.destroyed) client.socket.write(encodeFrame(JSON.stringify(payload)));
+  if (client.readyState !== WebSocket.OPEN) return;
+  client.send(JSON.stringify(payload));
 }
 
 function broadcast(filter, payload, except = null) {
-  for (const c of clients) {
-    if (c === except || c.socket.destroyed) continue;
-    if (filter(c)) send(c, payload);
+  for (const client of clients) {
+    if (client === except) continue;
+    if (client.readyState !== WebSocket.OPEN) continue;
+    if (filter(client)) send(client, payload);
   }
-}
-
-function cleanFishId(value) {
-  if (typeof value !== 'string') return null;
-  const cleaned = value.trim().slice(0, 64);
-  return /^[A-Za-z0-9_-]+$/.test(cleaned) ? cleaned : null;
 }
 
 function register(client, role, fishId) {
@@ -106,29 +113,53 @@ function register(client, role, fishId) {
 
 function handleMessage(client, raw) {
   let msg;
-  try { msg = JSON.parse(raw); }
-  catch { return; }
+
+  try {
+    msg = JSON.parse(raw.toString());
+  } catch {
+    return;
+  }
 
   if (!msg || typeof msg !== 'object' || typeof msg.type !== 'string') return;
 
   if (msg.type === 'REGISTER') {
     register(client, msg.role, msg.fishId);
-    send(client, { type: 'REGISTERED', role: client.role, fishId: client.fishId });
+    send(client, {
+      type: 'REGISTERED',
+      role: client.role,
+      fishId: client.fishId
+    });
     return;
   }
 
   if (msg.type === 'PING') {
-    send(client, { type: 'PONG', serverTime: Date.now() });
+    send(client, {
+      type: 'PONG',
+      serverTime: Date.now()
+    });
     return;
   }
 
   const fishId = cleanFishId(msg.fishId) || client.fishId || 'fish01';
-  const payload = { ...msg, fishId, source: client.role, serverTime: Date.now() };
+  const payload = {
+    ...msg,
+    fishId,
+    source: client.role,
+    serverTime: Date.now()
+  };
 
   if (client.role === 'phone') {
-    broadcast(c => c.role === 'display' && (!c.fishId || c.fishId === fishId), payload, client);
+    broadcast(
+      c => c.role === 'display' && (!c.fishId || c.fishId === fishId),
+      payload,
+      client
+    );
   } else if (client.role === 'display') {
-    broadcast(c => c.role === 'phone' && c.fishId === fishId, payload, client);
+    broadcast(
+      c => c.role === 'phone' && c.fishId === fishId,
+      payload,
+      client
+    );
   }
 
   if (msg.type === 'SPAWN_FISH') {
@@ -136,89 +167,85 @@ function handleMessage(client, raw) {
   }
 }
 
-function parseFrames(client, chunk) {
-  client.buffer = Buffer.concat([client.buffer, chunk]);
-  while (client.buffer.length >= 2) {
-    const b0 = client.buffer[0];
-    const b1 = client.buffer[1];
-    const opcode = b0 & 0x0f;
-    const masked = Boolean(b1 & 0x80);
-    let len = b1 & 0x7f;
-    let offset = 2;
-
-    if (len === 126) {
-      if (client.buffer.length < 4) return;
-      len = client.buffer.readUInt16BE(2); offset = 4;
-    } else if (len === 127) {
-      if (client.buffer.length < 10) return;
-      const big = client.buffer.readBigUInt64BE(2);
-      if (big > BigInt(Number.MAX_SAFE_INTEGER)) { client.socket.destroy(); return; }
-      len = Number(big); offset = 10;
-    }
-
-    let mask;
-    if (masked) {
-      if (client.buffer.length < offset + 4) return;
-      mask = client.buffer.subarray(offset, offset + 4); offset += 4;
-    }
-    if (client.buffer.length < offset + len) return;
-
-    let payload = Buffer.from(client.buffer.subarray(offset, offset + len));
-    client.buffer = client.buffer.subarray(offset + len);
-    if (masked) {
-      for (let i = 0; i < payload.length; i++) payload[i] ^= mask[i % 4];
-    }
-
-    if (opcode === 0x8) { client.socket.end(encodeFrame('', 0x8)); return; }
-    if (opcode === 0x9) { client.socket.write(encodeFrame(payload.toString(), 0xA)); continue; }
-    if (opcode === 0x1) handleMessage(client, payload.toString('utf8'));
-  }
-}
-
-server.on('upgrade', (req, socket) => {
+server.on('upgrade', (req, socket, head) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+
   if (url.pathname !== '/ws') {
     socket.write('HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n');
     socket.destroy();
     return;
   }
 
-  const key = req.headers['sec-websocket-key'];
-  if (!key || String(req.headers.upgrade).toLowerCase() !== 'websocket') {
-    socket.destroy(); return;
-  }
-  const accept = crypto.createHash('sha1')
-    .update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')
-    .digest('base64');
-  socket.write([
-    'HTTP/1.1 101 Switching Protocols',
-    'Upgrade: websocket',
-    'Connection: Upgrade',
-    `Sec-WebSocket-Accept: ${accept}`,
-    '\r\n'
-  ].join('\r\n'));
+  wss.handleUpgrade(req, socket, head, ws => {
+    ws.role = VALID_ROLES.has(url.searchParams.get('role'))
+      ? url.searchParams.get('role')
+      : 'unknown';
+    ws.fishId = cleanFishId(url.searchParams.get('fish'));
+    ws.isAlive = true;
 
-  const queryRole = url.searchParams.get('role') || 'unknown';
-  const client = {
-    socket,
-    buffer: Buffer.alloc(0),
-    role: VALID_ROLES.has(queryRole) ? queryRole : 'unknown',
-    fishId: cleanFishId(url.searchParams.get('fish'))
-  };
-  clients.add(client);
-  send(client, { type: 'CONNECTED', role: client.role, fishId: client.fishId });
-
-  socket.on('data', chunk => parseFrames(client, chunk));
-  socket.on('close', () => clients.delete(client));
-  socket.on('end', () => clients.delete(client));
-  socket.on('error', () => clients.delete(client));
+    wss.emit('connection', ws, req);
+  });
 });
+
+wss.on('connection', client => {
+  clients.add(client);
+
+  client.on('pong', () => {
+    client.isAlive = true;
+  });
+
+  client.on('message', raw => {
+    handleMessage(client, raw);
+  });
+
+  client.on('close', () => {
+    clients.delete(client);
+  });
+
+  client.on('error', err => {
+    console.error('WebSocket client error:', err.message);
+    clients.delete(client);
+  });
+
+  send(client, {
+    type: 'CONNECTED',
+    role: client.role,
+    fishId: client.fishId
+  });
+});
+
+const heartbeat = setInterval(() => {
+  for (const client of clients) {
+    if (client.readyState !== WebSocket.OPEN) {
+      clients.delete(client);
+      continue;
+    }
+
+    if (client.isAlive === false) {
+      clients.delete(client);
+      client.terminate();
+      continue;
+    }
+
+    client.isAlive = false;
+    client.ping();
+  }
+}, 25000);
+
+heartbeat.unref();
 
 function shutdown(signal) {
   console.log(`${signal} received; closing server.`);
+  clearInterval(heartbeat);
+
   for (const client of clients) {
-    try { client.socket.end(encodeFrame('', 0x8)); } catch (_) {}
+    try {
+      client.close(1001, 'Server shutting down');
+    } catch (_) {}
   }
+
+  wss.close();
+
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(0), 5000).unref();
 }
@@ -230,5 +257,6 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`Fish interaction server: ${useHttps ? 'https' : 'http'}://0.0.0.0:${PORT}`);
   console.log('Display: /display.html');
   console.log('Phone/NFC: /phone.html?fish=fish01');
+  console.log('WebSocket: /ws');
   console.log('Health: /health');
 });
