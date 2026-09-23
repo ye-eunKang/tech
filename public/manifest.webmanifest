@@ -1,0 +1,10 @@
+{
+  "name": "물고기는 어디에",
+  "short_name": "물고기는 어디에",
+  "start_url": "/phone.html?fish=fish01",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#071a25",
+  "theme_color": "#071a25",
+  "orientation": "any"
+}
